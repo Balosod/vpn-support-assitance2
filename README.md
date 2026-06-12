@@ -4,7 +4,7 @@ AI-powered support chat for VPN-related questions. Built with **Express + OpenAI
 
 ## Live Demo
 
-[Add your deployment link here]
+[Add your deployment link here](https://vpn-support-assitance.vercel.app/)
 
 ## Features
 
@@ -32,7 +32,7 @@ AI-powered support chat for VPN-related questions. Built with **Express + OpenAI
 
 ```bash
 git clone <your-repo-url>
-cd vpn-chat-assistant
+cd vpn-support-assistant
 ```
 
 ### 2. Backend Setup

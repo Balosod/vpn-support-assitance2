@@ -9,7 +9,7 @@ dotenv.config();
 export const config = {
   PORT: process.env.PORT || 5000,
   GROQ_API_KEY: process.env.GROQ_API_KEY,
-  AI_MODEL: process.env.AI_MODEL || "mixtral-8x7b-32768",
+  AI_MODEL: process.env.AI_MODEL || "llama-3.3-70b-versatile",
   NODE_ENV: process.env.NODE_ENV || "development",
 };
 
