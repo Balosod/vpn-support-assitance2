@@ -20,7 +20,7 @@ export type SessionAnalytics = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const SESSION_STORAGE_KEY = "vpn-chat-assistant-session-id";
-console.log("---API_URL----", API_URL);
+
 export function getOrCreateSessionId(): string {
   if (typeof window !== "undefined") {
     const existingId = window.localStorage.getItem(SESSION_STORAGE_KEY);
@@ -35,7 +35,6 @@ export function getOrCreateSessionId(): string {
         : `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
     window.localStorage.setItem(SESSION_STORAGE_KEY, newId);
-    console.log("----newId----", newId);
     return newId;
   }
 
@@ -65,6 +64,7 @@ export async function fetchChatStream(
   sessionId: string,
   onDelta: (delta: string) => void,
 ): Promise<ChatResponsePayload> {
+  console.log("---API_URL----", API_URL);
   const response = await fetch(`${API_URL}/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
