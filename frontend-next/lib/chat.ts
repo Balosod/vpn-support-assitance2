@@ -20,7 +20,7 @@ export type SessionAnalytics = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const SESSION_STORAGE_KEY = "vpn-chat-assistant-session-id";
-
+console.log("---API_URL----", API_URL);
 export function getOrCreateSessionId(): string {
   if (typeof window !== "undefined") {
     const existingId = window.localStorage.getItem(SESSION_STORAGE_KEY);
