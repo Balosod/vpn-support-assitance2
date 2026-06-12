@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import ChatHeader from "./components/ChatHeader";
+import AnalyticsPanel from "./components/AnalyticsPanel";
 import ChatMessage from "./components/ChatMessage";
 import ChatInput from "./components/ChatInput";
 import LoadingDots from "./components/LoadingDots";
@@ -22,12 +24,21 @@ export default function Home() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [hasReceivedResponseChunk, setHasReceivedResponseChunk] =
+    useState(false);
+  const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [offTopic, setOffTopic] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [analytics, setAnalytics] = useState<SessionAnalytics | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingTypingRef = useRef("");
+  const typingTimeoutRef = useRef<number | null>(null);
+  const streamCompleteRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,6 +70,13 @@ export default function Home() {
     const userMessage: Message = { role: "user", content: trimmed };
     const assistantIndex = messages.length + 1;
 
+    pendingTypingRef.current = "";
+    typingTimeoutRef.current = null;
+    streamCompleteRef.current = false;
+    setTypingMessageIndex(assistantIndex);
+    setIsTyping(false);
+    setHasReceivedResponseChunk(false);
+
     setMessages((prev) => [
       ...prev,
       userMessage,
@@ -68,27 +86,63 @@ export default function Home() {
     setOffTopic(false);
     setIsLoading(true);
 
+    const scheduleTyping = () => {
+      const typeNext = () => {
+        if (!pendingTypingRef.current) {
+          typingTimeoutRef.current = null;
+          if (streamCompleteRef.current) {
+            setIsTyping(false);
+            setTypingMessageIndex(null);
+          }
+          return;
+        }
+
+        const nextChar = pendingTypingRef.current[0];
+        pendingTypingRef.current = pendingTypingRef.current.slice(1);
+
+        setMessages((prev) => {
+          const next = [...prev];
+          const assistant = next[assistantIndex];
+          if (assistant?.role === "assistant") {
+            next[assistantIndex] = {
+              ...assistant,
+              content: assistant.content + nextChar,
+            };
+          }
+          return next;
+        });
+
+        typingTimeoutRef.current = window.setTimeout(typeNext, 20);
+      };
+
+      typingTimeoutRef.current = window.setTimeout(typeNext, 20);
+    };
+
     try {
-      let accumulatedText = "";
       const response = await fetchChatStream(
         [...messages, userMessage],
         sessionId,
         (delta) => {
-          accumulatedText += delta;
-          setMessages((prev) => {
-            const next = [...prev];
-            const assistant = next[assistantIndex];
-            if (assistant?.role === "assistant") {
-              next[assistantIndex] = { ...assistant, content: accumulatedText };
-            }
-            return next;
-          });
+          if (!hasReceivedResponseChunk) {
+            setHasReceivedResponseChunk(true);
+            setIsTyping(true);
+          }
+
+          pendingTypingRef.current += delta;
+          if (typingTimeoutRef.current === null) {
+            scheduleTyping();
+          }
         },
       );
 
+      streamCompleteRef.current = true;
+      if (typingTimeoutRef.current === null && !pendingTypingRef.current) {
+        setIsTyping(false);
+        setTypingMessageIndex(null);
+      }
+
       if (response.offTopic) {
         setOffTopic(true);
-        // For off-topic responses, update the message with the reply since no streaming occurs
         setMessages((prev) => {
           const next = [...prev];
           const assistant = next[assistantIndex];
@@ -101,6 +155,12 @@ export default function Home() {
 
       await fetchSessionStatistics(sessionId);
     } catch (err: any) {
+      streamCompleteRef.current = true;
+      if (typingTimeoutRef.current === null && !pendingTypingRef.current) {
+        setIsTyping(false);
+        setTypingMessageIndex(null);
+      }
+
       setError(err?.message ?? "Unable to stream response");
       setMessages((prev) => {
         const next = [...prev];
@@ -121,88 +181,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 py-6">
       <div className="mx-auto flex h-[calc(100vh-3rem)] max-w-4xl flex-col gap-5 px-4 sm:h-[calc(100vh-4rem)]">
-        <header className="rounded-[32px] border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-sky-600">
-                VPN Support
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                AI VPN Assistant
-              </h1>
-            </div>
-            <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-right">
-              Ask anything about VPN setup, troubleshooting, server choice,
-              billing, and performance.
-            </p>
-          </div>
-        </header>
+        <ChatHeader />
 
         {analytics && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowAnalytics((prev) => !prev)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              {showAnalytics ? "Hide analytics" : "Show analytics"}
-            </button>
-          </div>
-        )}
-
-        {showAnalytics && analytics && (
-          <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-xs text-slate-600">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Session
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {analytics.sessionId}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Requests
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {analytics.requests}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Messages
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {analytics.messagesExchanged}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Off-topic
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {analytics.offTopicRequests}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Avg latency
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {Math.round(analytics.averageResponseTimeMs)} ms
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="uppercase tracking-[0.3em] text-slate-500">
-                  Last interaction
-                </p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {new Date(analytics.lastInteraction).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </section>
+          <AnalyticsPanel
+            analytics={analytics}
+            showAnalytics={showAnalytics}
+            onToggle={() => setShowAnalytics((prev) => !prev)}
+          />
         )}
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] bg-white shadow-lg">
@@ -215,9 +201,14 @@ export default function Home() {
                 </div>
               )}
               {messages.map((msg, idx) => (
-                <ChatMessage key={idx} role={msg.role} content={msg.content} />
+                <ChatMessage
+                  key={idx}
+                  role={msg.role}
+                  content={msg.content}
+                  isTyping={isTyping && idx === typingMessageIndex}
+                />
               ))}
-              {isLoading && <LoadingDots />}
+              {isLoading && !hasReceivedResponseChunk && <LoadingDots />}
               {error && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                   ⚠️ {error}

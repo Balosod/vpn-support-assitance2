@@ -1,4 +1,4 @@
-// File: /home/sodiq/Documents/vpn-chat-assistant/frontend-next/app/layout.tsx
+// File: /home/sodiq/Documents/vpn-chat-assistant/vpn-chat-assistant-clean/frontend-next/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

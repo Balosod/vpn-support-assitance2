@@ -25,6 +25,7 @@ export function getOrCreateSessionId(): string {
   if (typeof window !== "undefined") {
     const existingId = window.localStorage.getItem(SESSION_STORAGE_KEY);
     if (existingId) {
+      console.log("----existingId----", existingId);
       return existingId;
     }
 
@@ -34,30 +35,12 @@ export function getOrCreateSessionId(): string {
         : `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
     window.localStorage.setItem(SESSION_STORAGE_KEY, newId);
+    console.log("----newId----", newId);
     return newId;
   }
 
   return `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
-
-// export async function fetchChatResponse(
-//   messages: Message[],
-//   sessionId: string,
-// ): Promise<string> {
-//   const response = await fetch(`${API_URL}/chat`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({ messages, sessionId }),
-//   });
-
-//   const data = await response.json();
-
-//   if (!response.ok) {
-//     throw new Error(data.error || "Failed to get response");
-//   }
-
-//   return data.reply as string;
-// }
 
 function parseSSE(rawEvent: string) {
   const lines = rawEvent.split("\n");

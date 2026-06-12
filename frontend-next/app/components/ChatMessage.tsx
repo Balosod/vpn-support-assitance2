@@ -1,9 +1,14 @@
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
+  isTyping?: boolean;
 }
 
-export default function ChatMessage({ role, content }: ChatMessageProps) {
+export default function ChatMessage({
+  role,
+  content,
+  isTyping = false,
+}: ChatMessageProps) {
   const isUser = role === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -14,7 +19,12 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
             : "bg-slate-100 text-slate-900 rounded-bl-none"
         }`}
       >
-        <p className="whitespace-pre-wrap break-words">{content}</p>
+        <p className="whitespace-pre-wrap break-words">
+          {content}
+          {isTyping ? (
+            <span className="ml-1 inline-block h-5 w-[1px] animate-pulse rounded-sm bg-slate-500 align-bottom" />
+          ) : null}
+        </p>
       </div>
     </div>
   );

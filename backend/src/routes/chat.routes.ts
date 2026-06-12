@@ -6,52 +6,13 @@ import { Router, Request, Response } from "express";
 import { groqService } from "../services/groq.service.js";
 import { analyticsService } from "../services/analytics.service.js";
 import { validateChatRequest } from "../middleware/validation.js";
-import { ChatRequest, ChatResponse, ErrorResponse } from "../types/chat.js";
+import { ChatRequest } from "../types/chat.js";
+import {
+  VPN_TOPIC_KEYWORDS,
+  OFF_TOPIC_KEYWORDS,
+} from "../constants/keywords.js";
 
 const router = Router();
-
-const VPN_TOPIC_KEYWORDS = [
-  "vpn",
-  "connection",
-  "disconnect",
-  "disconnects",
-  "speed",
-  "latency",
-  "server",
-  "billing",
-  "account",
-  "subscription",
-  "login",
-  "password",
-  "privacy",
-  "performance",
-  "encryption",
-  "protocol",
-  "security",
-  "subscription",
-  "streaming",
-];
-
-const OFF_TOPIC_KEYWORDS = [
-  "joke",
-  "movie",
-  "music",
-  "weather",
-  "sports",
-  "politics",
-  "recipe",
-  "travel",
-  "health",
-  "news",
-  "stock",
-  "finance",
-  "investment",
-  "game",
-  "coding",
-  "programming",
-  "history",
-  "science",
-];
 
 function isOffTopicQuestion(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -92,44 +53,6 @@ function recordAnalytics(
 }
 
 /**
- * POST /api/chat
- * Accepts user messages and returns AI-generated response
- */
-router.post(
-  "/chat",
-  validateChatRequest,
-  async (
-    req: Request<{}, ChatResponse | ErrorResponse, ChatRequest>,
-    res: Response<ChatResponse | ErrorResponse>,
-  ): Promise<void> => {
-    try {
-      const { messages, sessionId } = req.body;
-      const lastUserMessage = messages[messages.length - 1]?.content || "";
-
-      if (isOffTopicQuestion(lastUserMessage)) {
-        const offTopicReply =
-          "I'm specialized in VPN support. Please ask me about connection issues, server selection, account help, or performance tips.";
-        recordAnalytics(sessionId, 0, countUserMessages(messages), true);
-        res.json({ reply: offTopicReply, offTopic: true });
-        return;
-      }
-
-      const startTime = Date.now();
-      const reply = await groqService.getResponse(messages);
-      const elapsed = Date.now() - startTime;
-
-      recordAnalytics(sessionId, elapsed, countUserMessages(messages), false);
-      res.json({ reply });
-    } catch (error) {
-      console.error("Chat endpoint error:", error);
-      res.status(500).json({
-        error: "AI service temporarily unavailable. Please try again.",
-      });
-    }
-  },
-);
-
-/**
  * POST /api/chat/stream
  * Streams AI response chunks using Server-Sent Events (SSE)
  */
@@ -139,7 +62,6 @@ router.post(
   async (req: Request<{}, {}, ChatRequest>, res: Response): Promise<void> => {
     const { messages, sessionId } = req.body;
     const lastUserMessage = messages[messages.length - 1]?.content || "";
-
     if (isOffTopicQuestion(lastUserMessage)) {
       const offTopicReply =
         "I'm specialized in VPN support. Please ask me about connection issues, server selection, account help, or performance tips.";
