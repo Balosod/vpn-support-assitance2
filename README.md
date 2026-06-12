@@ -18,7 +18,7 @@ AI-powered support chat for VPN-related questions. Built with **Express + OpenAI
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS, Lucide icons, TypeScript
 - **Backend**: Node.js, Express, Groq API, TypeScript
-- **LLM**: Mixtral 8x7b (configurable)
+- **LLM**: llama-3.3-70b-versatile (configurable)
 
 ## Setup Instructions
 
