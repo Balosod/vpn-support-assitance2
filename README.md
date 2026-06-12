@@ -6,6 +6,8 @@ AI-powered support chat for VPN-related questions. Built with **Express + OpenAI
 
 [deployment link](https://vpn-support-assitance.vercel.app/)
 
+> ⚠️ **Note**: The backend is hosted on Render's free plan. On the initial request, the server may take **15-30 seconds** to spin up. Subsequent requests will be faster. Thank you for your patience!
+
 ## Features
 
 - Chat interface with conversation history
